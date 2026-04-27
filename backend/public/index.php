@@ -3,6 +3,9 @@
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
+$dotenv->load();
+
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: OPTIONS,GET,POST,PUT,PATCH,DELETE");
@@ -16,27 +19,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
+$dbConfig = new \App\Config\Database();
+$dbConnection = $dbConfig->getConnection();
+
+$userController = new \App\Controllers\UserController($dbConnection);
+$gameController = new \App\Controllers\GameController($dbConnection);
 
 switch (true) {
+    // --------------
+    // USER ROUTES
+    // --------------
+    
     // GET /api/users
     case ($method === 'GET' && $uri === '/api/users'):
-        echo json_encode(["message" => "Endpoint hit: Get all users"]);
+        $userController->getAllUsers();
         break;
 
     // POST /api/users
     case ($method === 'POST' && $uri === '/api/users'):
-        echo json_encode(["message" => "Endpoint hit: Register a new user"]);
+        $data = json_decode(file_get_contents("php://input"), true);
+        $userController->registerUser($data);
         break;
 
     // GET /api/users/{userId}
     case ($method === 'GET' && preg_match('#^/api/users/([^/]+)$#', $uri, $matches)):
         $userId = $matches[1];
-        echo json_encode(["message" => "Endpoint hit: Get user profile", "userId" => $userId]);
+        $userController->getUserProfile($userId);
         break;
+
+    // --------------------
+    // GAME LOBBY ROUTES
+    // --------------------
 
     // POST /api/games
     case ($method === 'POST' && $uri === '/api/games'):
-        echo json_encode(["message" => "Endpoint hit: Create a new game"]);
+        $gameController->createGame();
         break;
 
     // GET /api/games/{gameId}
@@ -45,10 +62,46 @@ switch (true) {
         echo json_encode(["message" => "Endpoint hit: Get game state", "gameId" => $gameId]);
         break;
 
-    // POST /api/games/{gameId}/moves
+    // GET /api/games/{gameId}/players (Get all players currently in a game)
+    case ($method === 'GET' && preg_match('#^/api/games/([^/]+)/players$#', $uri, $matches)):
+        $gameId = $matches[1];
+        $gameController->getPlayersInGame($gameId);
+        break;
+
+    // POST /api/games/{gameId}/players (Join Game)
+    case ($method === 'POST' && preg_match('#^/api/games/([^/]+)/players$#', $uri, $matches)):
+        $gameId = $matches[1];
+        $data = json_decode(file_get_contents("php://input"), true);
+        $gameController->joinGame($gameId, $data);
+        break;
+
+    // DELETE /api/games/{gameId}/players/{userId} (Leave Game)
+    case ($method === 'DELETE' && preg_match('#^/api/games/([^/]+)/players/([^/]+)$#', $uri, $matches)):
+        $gameId = $matches[1];
+        $userId = $matches[2];
+        echo json_encode(["message" => "Endpoint hit: Remove player", "gameId" => $gameId, "userId" => $userId]);
+        break;
+
+    // PATCH /api/games/{gameId}/start (Start Game)
+    case ($method === 'PATCH' && preg_match('#^/api/games/([^/]+)/start$#', $uri, $matches)):
+        $gameId = $matches[1];
+        echo json_encode(["message" => "Endpoint hit: Start game and shuffle tiles", "gameId" => $gameId]);
+        break;
+
+    // ------------------
+    // GAMEPLAY ROUTES
+    // ------------------
+
+    // POST /api/games/{gameId}/turn/draw (Draw a tile)
+    case ($method === 'POST' && preg_match('#^/api/games/([^/]+)/turn/draw$#', $uri, $matches)):
+        $gameId = $matches[1];
+        $data = json_decode(file_get_contents("php://input"), true);
+        echo json_encode(["message" => "Endpoint hit: Draw tile", "gameId" => $gameId, "payload" => $data]);
+        break;
+
+    // POST /api/games/{gameId}/moves (Submit a move)
     case ($method === 'POST' && preg_match('#^/api/games/([^/]+)/moves$#', $uri, $matches)):
         $gameId = $matches[1];
-        // To read the JSON body sent in a POST request:
         $data = json_decode(file_get_contents("php://input"), true);
         echo json_encode(["message" => "Endpoint hit: Submit move", "gameId" => $gameId, "payload" => $data]);
         break;

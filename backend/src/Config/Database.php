@@ -2,10 +2,6 @@
 namespace App\Config;
 
 class Database {
-    private $host = "127.0.0.1";
-    private $db_name = "carcassonne_api";
-    private $username = "root";
-    private $password = "";
     public $conn;
 
     public function getConnection() {
@@ -13,9 +9,9 @@ class Database {
 
         try {
             $this->conn = new \PDO(
-                "mysql:host=" . $this->host . ";dbname=" . $this->db_name,
-                $this->username,
-                $this->password
+                "mysql:host=" . $_ENV['DB_HOST'] . ";dbname=" . $_ENV['DB_NAME'],
+                $_ENV['DB_USER'],
+                $_ENV['DB_PASS']
             );
             $this->conn->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
             $this->conn->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC); 
