@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "cppdbg",
+      "request": "launch",
+      "args": [],
+      "stopAtEntry": false,
+      "externalConsole": true,
+      "cwd": "c:/Users/Roberta/AppData/Local/Temp/693c2509-f68a-4cfb-9cf9-ff477c20eb45_pcd.rar.b45/pcd/tema7",
+      "program": "c:/Users/Roberta/AppData/Local/Temp/693c2509-f68a-4cfb-9cf9-ff477c20eb45_pcd.rar.b45/pcd/tema7/build/Debug/outDebug",
+      "MIMode": "gdb",
+      "miDebuggerPath": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
+    }
+  ]
+}
