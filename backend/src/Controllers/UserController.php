@@ -94,4 +94,39 @@ class UserController {
             echo json_encode(["error" => "Failed to register user", "details" => $e->getMessage()]);
         }
     }
+
+    // POST /api/users/login
+    public function loginUser($data) {
+        if (!isset($data['username']) || !isset($data['password'])) {
+            http_response_code(400);
+            echo json_encode(["error" => "Te rog introdu numele și parola."]);
+            return;
+        }
+
+        $username = trim($data['username']);
+        $password = $data['password'];
+
+        try {
+            // 1. Find the user by username
+            $stmt = $this->db->prepare("SELECT userId, username, password_hash, totalWins FROM users WHERE username = :username");
+            $stmt->execute(['username' => $username]);
+            $user = $stmt->fetch();
+
+            // 2. Verify the password matches the hash
+            if ($user && password_verify($password, $user['password_hash'])) {
+                http_response_code(200); // 200 OK
+                echo json_encode([
+                    "userId" => $user['userId'],
+                    "username" => $user['username'],
+                    "totalWins" => $user['totalWins']
+                ]);
+            } else {
+                http_response_code(401); // 401 Unauthorized
+                echo json_encode(["error" => "Nume de utilizator sau parolă incorectă."]);
+            }
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(["error" => "Eroare la autentificare", "details" => $e->getMessage()]);
+        }
+    }
 }

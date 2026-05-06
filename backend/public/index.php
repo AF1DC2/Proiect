@@ -47,6 +47,12 @@ switch (true) {
         $userController->getUserProfile($userId);
         break;
 
+    // POST /api/users/login
+    case ($method === 'POST' && $uri === '/api/users/login'):
+        $data = json_decode(file_get_contents("php://input"), true);
+        $userController->loginUser($data);
+        break;
+
     // --------------------
     // GAME LOBBY ROUTES
     // --------------------
@@ -85,7 +91,7 @@ switch (true) {
     // PATCH /api/games/{gameId}/start (Start Game)
     case ($method === 'PATCH' && preg_match('#^/api/games/([^/]+)/start$#', $uri, $matches)):
         $gameId = $matches[1];
-        echo json_encode(["message" => "Endpoint hit: Start game and shuffle tiles", "gameId" => $gameId]);
+        $gameController->startGame($gameId);
         break;
 
     // ------------------
@@ -96,14 +102,20 @@ switch (true) {
     case ($method === 'POST' && preg_match('#^/api/games/([^/]+)/turn/draw$#', $uri, $matches)):
         $gameId = $matches[1];
         $data = json_decode(file_get_contents("php://input"), true);
-        echo json_encode(["message" => "Endpoint hit: Draw tile", "gameId" => $gameId, "payload" => $data]);
+        $gameController->drawTile($gameId, $data);
         break;
 
-    // POST /api/games/{gameId}/moves (Submit a move)
+    // GET /api/games/{gameId}/moves (Fetch the board state)
+    case ($method === 'GET' && preg_match('#^/api/games/([^/]+)/moves$#', $uri, $matches)):
+        $gameId = $matches[1];
+        $gameController->getBoardMoves($gameId);
+        break;
+
+    // POST /api/games/{gameId}/moves (Submit a dragged tile)
     case ($method === 'POST' && preg_match('#^/api/games/([^/]+)/moves$#', $uri, $matches)):
         $gameId = $matches[1];
         $data = json_decode(file_get_contents("php://input"), true);
-        echo json_encode(["message" => "Endpoint hit: Submit move", "gameId" => $gameId, "payload" => $data]);
+        $gameController->submitMove($gameId, $data);
         break;
 
     // 404 Not Found
