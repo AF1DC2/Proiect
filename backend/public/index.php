@@ -65,7 +65,7 @@ switch (true) {
     // GET /api/games/{gameId}
     case ($method === 'GET' && preg_match('#^/api/games/([^/]+)$#', $uri, $matches)):
         $gameId = $matches[1];
-        echo json_encode(["message" => "Endpoint hit: Get game state", "gameId" => $gameId]);
+        $gameController->getGame($gameId);
         break;
 
     // GET /api/games/{gameId}/players (Get all players currently in a game)
@@ -83,15 +83,20 @@ switch (true) {
 
     // DELETE /api/games/{gameId}/players/{userId} (Leave Game)
     case ($method === 'DELETE' && preg_match('#^/api/games/([^/]+)/players/([^/]+)$#', $uri, $matches)):
-        $gameId = $matches[1];
-        $userId = $matches[2];
-        echo json_encode(["message" => "Endpoint hit: Remove player", "gameId" => $gameId, "userId" => $userId]);
+        $gameController->leaveGame($matches[1], $matches[2]);
         break;
 
     // PATCH /api/games/{gameId}/start (Start Game)
     case ($method === 'PATCH' && preg_match('#^/api/games/([^/]+)/start$#', $uri, $matches)):
         $gameId = $matches[1];
         $gameController->startGame($gameId);
+        break;
+
+    // POST /api/games/{gameId}/end (End Game — forfeit / manual)
+    case ($method === 'POST' && preg_match('#^/api/games/([^/]+)/end$#', $uri, $matches)):
+        $gameId = $matches[1];
+        $data = json_decode(file_get_contents("php://input"), true);
+        $gameController->endGameNow($gameId, $data);
         break;
 
     // ------------------
