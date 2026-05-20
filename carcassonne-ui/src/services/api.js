@@ -96,6 +96,45 @@ export default {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Mutare invalidă');
     return data;
+  },
+
+  async fetchPlayers(gameId) {
+    const res = await fetch(`${API_BASE}/games/${gameId}/players`);
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to fetch players');
+    }
+    return res.json();
+  },
+
+  async fetchGameState(gameId) {
+    const res = await fetch(`${API_BASE}/games/${gameId}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch game state');
+    return data;
+  },
+
+  async leaveGame(gameId, userId) {
+    const res = await fetch(`${API_BASE}/games/${gameId}/players/${userId}`, {
+      method: 'DELETE'
+    });
+    // 404 means the game was already cleaned up — that's fine, we still consider it "left".
+    if (!res.ok && res.status !== 404) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to leave game');
+    }
+    return res.json().catch(() => ({}));
+  },
+
+  async endGame(gameId, userId) {
+    const res = await fetch(`${API_BASE}/games/${gameId}/end`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to end game');
+    return data;
   }
-  
+
 }
