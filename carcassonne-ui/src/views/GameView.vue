@@ -224,6 +224,7 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '../services/api'; 
 import Pusher from 'pusher-js';
+import { checkEdgeMatch } from '../tileEdges';
 
 const route = useRoute();
 const router = useRouter();
@@ -416,10 +417,32 @@ const onDragStart = (event) => {
   event.dataTransfer.setData('tileData', JSON.stringify(currentTile.value));
 };
 
+const hasAdjacentTile = (x, y) => {
+  if (Object.keys(board).length === 0) return true; // prima piesă
+  const neighbors = [
+    `${x},${y - 1}`, // sus
+    `${x},${y + 1}`, // jos
+    `${x - 1},${y}`, // stânga
+    `${x + 1},${y}`, // dreapta
+  ];
+  return neighbors.some((key) => board[key]);
+};
+
 // NEW: drop no longer submits immediately — it opens the meeple modal
 const onDrop = (event, x, y) => {
   if (board[`${x},${y}`]) return; 
   if (!currentTile.value) return;
+
+  if (!hasAdjacentTile(x, y)) {
+    alert('Piesa trebuie plasată lângă o piesă existentă!');
+    return;
+  }
+
+  const match = checkEdgeMatch(board, x, y, currentTile.value.tileId, currentTile.value.rotation);
+  if (!match.ok) {
+    alert(match.reason);
+    return;
+  }
 
   let tileData;
   try {
