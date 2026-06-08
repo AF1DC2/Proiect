@@ -220,7 +220,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '../services/api'; 
 import Pusher from 'pusher-js';
@@ -251,6 +251,10 @@ const endGameInfo = ref(null);
 // --- NEW: transient toasts for scoring events from `move-played` ---
 const scoreToasts = ref([]); // [{ id, text }]
 let toastSeq = 0;
+
+// Pusher client + channel — declared here so onBeforeUnmount can tear them down.
+let pusher = null;
+let channel = null;
 
 const FEATURE_LABEL = {
   monastery: 'Mânăstire completă',
@@ -525,13 +529,11 @@ onMounted(async () => {
   await handleDrawTile();
 
   // --- PUSHER LISTENER ---
-  Pusher.logToConsole = true;
-
-  const pusher = new Pusher('b852cb41209513497088', {
-    cluster: 'eu'
+  pusher = new Pusher(import.meta.env.VITE_PUSHER_KEY, {
+    cluster: import.meta.env.VITE_PUSHER_CLUSTER || 'eu'
   });
 
-  const channel = pusher.subscribe('game-' + route.params.id);
+  channel = pusher.subscribe('game-' + route.params.id);
 
   channel.bind('player-joined', async function(data) {
     console.log("Un nou jucător s-a alăturat:", data);
@@ -580,6 +582,19 @@ onMounted(async () => {
     endGameInfo.value = data;
     // Don't auto-navigate — the modal lets the user read the final scores first.
   });
+});
+
+// Tear down the Pusher subscription so handlers don't accumulate across remounts.
+onBeforeUnmount(() => {
+  if (channel) {
+    channel.unbind_all();
+    channel.unsubscribe();
+    channel = null;
+  }
+  if (pusher) {
+    pusher.disconnect();
+    pusher = null;
+  }
 });
 </script>
 

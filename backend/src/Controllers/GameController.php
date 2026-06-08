@@ -7,6 +7,9 @@ use Pusher\Pusher;
 use App\Services\ScoreService;
 
 class GameController {
+    // Matches the frontend's player-color palette (5 distinct colors).
+    private const MAX_PLAYERS = 5;
+
     private $db;
 
     public function __construct(PDO $db) {
@@ -15,10 +18,10 @@ class GameController {
 
     private function pusher(): Pusher {
         return new Pusher(
-            'b852cb41209513497088',
-            '9490cf2fa0fd1b8e5662',
-            '2150990',
-            ['cluster' => 'eu', 'useTLS' => true]
+            $_ENV['PUSHER_KEY'],
+            $_ENV['PUSHER_SECRET'],
+            $_ENV['PUSHER_APP_ID'],
+            ['cluster' => $_ENV['PUSHER_CLUSTER'] ?? 'eu', 'useTLS' => true]
         );
     }
 
@@ -113,7 +116,8 @@ class GameController {
             echo json_encode($game);
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode(["error" => "Failed to fetch game", "details" => $e->getMessage()]);
+            error_log("Failed to fetch game: " . $e->getMessage());
+            echo json_encode(["error" => "Failed to fetch game"]);
         }
     }
 
@@ -132,7 +136,8 @@ class GameController {
             ]);
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode(["error" => "Failed to create game", "details" => $e->getMessage()]);
+            error_log("Failed to create game: " . $e->getMessage());
+            echo json_encode(["error" => "Failed to create game"]);
         }
     }
 
@@ -160,6 +165,19 @@ class GameController {
             if ($game['status'] !== 'waiting_for_players') {
                 http_response_code(403);
                 echo json_encode(["error" => "Cannot join this game. Current status: " . $game['status']]);
+                return;
+            }
+
+            // Cap the lobby size. A user already in the lobby re-joining is fine
+            // (the unique (gameId, userId) constraint turns it into a 409 below),
+            // so only block when the lobby is full of *other* players.
+            $countStmt = $this->db->prepare("
+                SELECT COUNT(*) FROM players WHERE gameId = :gameId AND userId <> :userId
+            ");
+            $countStmt->execute(['gameId' => $gameId, 'userId' => $userId]);
+            if ((int)$countStmt->fetchColumn() >= self::MAX_PLAYERS) {
+                http_response_code(403);
+                echo json_encode(["error" => "This game is full (max " . self::MAX_PLAYERS . " players)."]);
                 return;
             }
 
@@ -193,7 +211,8 @@ class GameController {
                 echo json_encode(["error" => "User is already in this game lobby"]);
             } else {
                 http_response_code(500);
-                echo json_encode(["error" => "Failed to join game", "details" => $e->getMessage()]);
+                error_log("Failed to join game: " . $e->getMessage());
+                echo json_encode(["error" => "Failed to join game"]);
             }
         }
     }
@@ -214,7 +233,8 @@ class GameController {
             echo json_encode($players);
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode(["error" => "Failed to fetch players", "details" => $e->getMessage()]);
+            error_log("Failed to fetch players: " . $e->getMessage());
+            echo json_encode(["error" => "Failed to fetch players"]);
         }
     }
 
@@ -311,7 +331,8 @@ class GameController {
                 $this->db->rollBack();
             }
             http_response_code(500);
-            echo json_encode(["error" => "Failed to start game", "details" => $e->getMessage()]);
+            error_log("Failed to start game: " . $e->getMessage());
+            echo json_encode(["error" => "Failed to start game"]);
         }
     }
 
@@ -406,7 +427,8 @@ class GameController {
                 $this->db->rollBack();
             }
             http_response_code(500);
-            echo json_encode(["error" => "Failed to draw tile", "details" => $e->getMessage()]);
+            error_log("Failed to draw tile: " . $e->getMessage());
+            echo json_encode(["error" => "Failed to draw tile"]);
         }
     }
 
@@ -427,7 +449,8 @@ class GameController {
             echo json_encode($moves);
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode(["error" => "Failed to fetch board state", "details" => $e->getMessage()]);
+            error_log("Failed to fetch board state: " . $e->getMessage());
+            echo json_encode(["error" => "Failed to fetch board state"]);
         }
     }
 
@@ -594,6 +617,7 @@ class GameController {
                 "message" => "Mutare înregistrată cu succes!",
                 "nextTurn" => $nextPlayerId,
                 "meeplePlaced" => $placeMeeple,
+                "scoreEvents" => $scoreEvents,
                 "gameOver" => $gameOver,
                 "winnerId" => $winnerId
             ]);
@@ -703,7 +727,8 @@ class GameController {
         } catch (Exception $e) {
             if ($this->db->inTransaction()) $this->db->rollBack();
             http_response_code(500);
-            echo json_encode(["error" => "Failed to leave game", "details" => $e->getMessage()]);
+            error_log("Failed to leave game: " . $e->getMessage());
+            echo json_encode(["error" => "Failed to leave game"]);
         }
     }
 
@@ -751,7 +776,8 @@ class GameController {
             ]);
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode(["error" => "Failed to end game", "details" => $e->getMessage()]);
+            error_log("Failed to end game: " . $e->getMessage());
+            echo json_encode(["error" => "Failed to end game"]);
         }
     }
 }

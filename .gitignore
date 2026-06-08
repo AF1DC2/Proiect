@@ -1,1 +1,8 @@
+# Secrets / env (keep .env.example tracked)
 backend/.env
+carcassonne-ui/.env
+carcassonne-ui/.env.local
+
+# Dependencies
+backend/vendor/
+carcassonne-ui/node_modules/

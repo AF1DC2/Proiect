@@ -21,7 +21,8 @@ class UserController {
             echo json_encode($users);
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode(["error" => "Failed to fetch users", "details" => $e->getMessage()]);
+            error_log("Failed to fetch users: " . $e->getMessage());
+            echo json_encode(["error" => "Failed to fetch users"]);
         }
     }
 
@@ -91,7 +92,8 @@ class UserController {
 
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode(["error" => "Failed to register user", "details" => $e->getMessage()]);
+            error_log("Failed to register user: " . $e->getMessage());
+            echo json_encode(["error" => "Failed to register user"]);
         }
     }
 
@@ -126,7 +128,8 @@ class UserController {
             }
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode(["error" => "Eroare la autentificare", "details" => $e->getMessage()]);
+            error_log("Login error: " . $e->getMessage());
+            echo json_encode(["error" => "Eroare la autentificare"]);
         }
     }
 }
